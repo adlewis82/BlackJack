@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackjack Strategy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0A0F1E;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1F2D45;
+    --felt:      #0B3D23;
+    --felt-mid:  #0E4828;
+    --gold:      #D4A843;
+    --gold-dim:  #8A6A1E;
+    --green:     #22C55E;
+    --red:       #EF4444;
+    --purple:    #A855F7;
+    --blue:      #3B82F6;
+    --orange:    #F97316;
+    --text:      #F1F5F9;
+    --muted:     #64748B;
+    --muted2:    #94A3B8;
+    --card-bg:   #FAFAFA;
+    --radius:    14px;
+  }
+
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  /* ─── Header ─────────────────────────────────── */
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 4px 0 0;
+  }
+  .header-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 1.55rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+
+  /* ─── Controls ───────────────────────────────── */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .controls-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .control-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+  .toggle-pair {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .toggle-pair button {
+    padding: 7px 14px;
+    border: none;
+    background: transparent;
+    color: var(--muted2);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .toggle-pair button.active {
+    background: var(--gold);
+    color: #000;
+  }
+  .toggle-pair button:hover:not(.active) {
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  .controls-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .hand-count {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .deal-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .deal-btn:hover { background: #16A34A; }
+  .deal-btn:active { transform: scale(0.97); }
+  .deal-btn svg { width: 14px; height: 14px; }
+
+  /* ─── Felt Table ─────────────────────────────── */
+  .felt {
+    background: radial-gradient(ellipse at 50% 0%, var(--felt-mid) 0%, var(--felt) 70%);
+    border: 1px solid #0a5a2a;
+    border-radius: var(--radius);
+    padding: 20px 16px 18px;
+    margin-bottom: 16px;
+    box-shadow: inset 0 2px 20px rgba(0,0,0,0.4);
+  }
+
+  /* ─── Dealer row ─────────────────────────────── */
+  .dealer-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .slot-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 6px;
+  }
+
+  /* ─── Player row ─────────────────────────────── */
+  .player-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .extra-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ─── Cards ──────────────────────────────────── */
+  .card-slot { display: flex; flex-direction: column; }
+
+  .card {
+    width: 64px;
+    height: 90px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: #1a1a1a;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    user-select: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+    position: relative;
+    letter-spacing: -0.02em;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+  .card:active { transform: scale(0.95); }
+  .card.empty {
+    background: rgba(0,0,0,0.25);
+    border: 2px dashed rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.3);
+    font-size: 1.4rem;
+    box-shadow: none;
+  }
+  .card.empty:hover { border-color: rgba(255,255,255,0.35); color: rgba(255,255,255,0.5); }
+  .card.selected { color: #1a1a1a; }
+  .card.selected.red-card { color: #C0392B; }
+  .card.dealer-card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212,168,67,0.25), 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .card.player-card.selected {
+    border-color: #93C5FD;
+    box-shadow: 0 0 0 3px rgba(147,197,253,0.2), 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .card-clear {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 22px;
+    height: 22px;
+    background: #374151;
+    color: #9CA3AF;
+    border: 1.5px solid #4B5563;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+  }
+  .card-clear:hover { background: #EF4444; color: #fff; border-color: #EF4444; }
+
+  /* corner pip on filled cards */
+  .card-pip-tl {
+    position: absolute;
+    top: 5px;
+    left: 7px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-pip-br {
+    position: absolute;
+    bottom: 5px;
+    right: 7px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+    transform: rotate(180deg);
+  }
+
+  /* ─── Card Picker ─────────────────────────────── */
+  .picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 900;
+    backdrop-filter: blur(2px);
+  }
+  .picker-overlay.visible { display: block; }
+  .card-picker {
+    display: none;
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    z-index: 1000;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    min-width: 220px;
+  }
+  .card-picker.visible { display: block; }
+  .picker-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding: 0 2px;
+  }
+  .picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .picker-grid button {
+    padding: 10px 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    text-align: center;
+  }
+  .picker-grid button:hover { background: var(--gold); color: #000; border-color: var(--gold); }
+  .picker-grid button.face-card { color: #EF4444; }
+  .picker-grid button.face-card:hover { color: #000; }
+
+  /* ─── Result Panel ───────────────────────────── */
+  .result-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 100px;
+  }
+  .result-hint {
+    padding: 24px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .result-hint svg {
+    display: block;
+    margin: 0 auto 10px;
+    opacity: 0.3;
+    width: 28px;
+    height: 28px;
+  }
+  .result-inner { display: none; }
+  .result-inner.visible { display: block; }
+
+  /* accent bar at top of result */
+  .result-bar {
+    height: 4px;
+    background: var(--green);
+    transition: background 0.2s;
+  }
+  .result-bar.hit    { background: var(--green); }
+  .result-bar.stand  { background: var(--red); }
+  .result-bar.double { background: var(--purple); }
+  .result-bar.split  { background: var(--blue); }
+  .result-bar.surr   { background: var(--orange); }
+  .result-bar.bust   { background: var(--red); }
+
+  .result-body { padding: 16px 18px 18px; }
+
+  .result-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .result-hand-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted2);
+    letter-spacing: 0.04em;
+  }
+  .result-hand-val {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .move-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .move-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .move-badge.hit    { background: rgba(34,197,94,0.15);  color: #4ADE80; border: 1px solid rgba(34,197,94,0.3); }
+  .move-badge.stand  { background: rgba(239,68,68,0.15);  color: #F87171; border: 1px solid rgba(239,68,68,0.3); }
+  .move-badge.double { background: rgba(168,85,247,0.15); color: #C084FC; border: 1px solid rgba(168,85,247,0.3); }
+  .move-badge.split  { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); }
+  .move-badge.surr   { background: rgba(249,115,22,0.15); color: #FB923C; border: 1px solid rgba(249,115,22,0.3); }
+  .move-badge.bust   { background: rgba(239,68,68,0.15);  color: #F87171; border: 1px solid rgba(239,68,68,0.3); }
+  .move-badge.end    { background: var(--surface2); color: var(--muted2); border: 1px solid var(--border); }
+
+  .move-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+
+  .move-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .move-btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+    transition: opacity 0.15s, transform 0.1s;
+    min-height: 44px;
+  }
+  .move-btn:hover { opacity: 0.85; }
+  .move-btn:active { transform: scale(0.97); }
+  .move-btn.hit    { background: var(--green); color: #000; }
+  .move-btn.stand  { background: var(--red); }
+  .move-btn.double { background: var(--purple); }
+  .move-btn.split  { background: var(--blue); }
+  .move-btn.surr   { background: var(--orange); }
+
+  .dealer-ace-note {
+    display: none;
+    margin-top: 12px;
+    padding: 9px 12px;
+    background: rgba(249,115,22,0.1);
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 8px;
+    color: #FB923C;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .dealer-ace-note svg { display: inline; vertical-align: -2px; margin-right: 4px; }
+
+  /* ─── Bust state ─────────────────────────────── */
+  .result-panel.bust .result-body { background: rgba(239,68,68,0.05); }
+
+  /* ─── Responsive ─────────────────────────────── */
+  @media (max-width: 420px) {
+    body { padding: 12px; }
+    .card { width: 56px; height: 80px; font-size: 1.25rem; }
+    .header h1 { font-size: 1.3rem; }
+    .controls { padding: 12px 14px; }
+    .toggle-pair button { padding: 6px 11px; font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="header">
+  <div class="header-label">Basic Strategy</div>
+  <h1>Blackjack Advisor</h1>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="controls-left">
+    <div class="control-group">
+      <span class="control-label">Surrender</span>
+      <div class="toggle-pair" id="surrender-toggle">
+        <button class="active" onclick="setOption('surrender','no',this)">No</button>
+        <button onclick="setOption('surrender','yes',this)">Yes</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Dealer Soft 17</span>
+      <div class="toggle-pair" id="soft17-toggle">
+        <button class="active" onclick="setOption('soft17','stands',this)">Stands</button>
+        <button onclick="setOption('soft17','hits',this)">Hits</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls-right">
+    <div class="hand-count" id="hand-count">0 hands played</div>
+    <button class="deal-btn" onclick="resetHand()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5"/>
+        <polyline points="13.5 2.5 13.5 6 10 6"/>
+      </svg>
+      Deal Again
+    </button>
+  </div>
+</div>
+
+<!-- Felt Table -->
+<div class="felt">
+  <!-- Dealer -->
+  <div class="dealer-row">
+    <div class="card-slot">
+      <div class="slot-label">Dealer</div>
+      <div class="card empty dealer-card" id="card-dealer" onclick="openPicker('dealer',event)">+</div>
+    </div>
+  </div>
+
+  <!-- Player -->
+  <div>
+    <div class="slot-label">Your Hand</div>
+    <div class="player-row">
+      <div class="card-slot">
+        <div class="card empty player-card" id="card-p1" onclick="openPicker('p1',event)">+</div>
+      </div>
+      <div class="card-slot">
+        <div class="card empty player-card" id="card-p2" onclick="openPicker('p2',event)">+</div>
+      </div>
+      <div class="extra-cards" id="extra-cards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="result-panel" id="result-panel">
+  <div class="result-hint" id="result-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 6.5 9c0 6 3.5 10 6.5 11M19 14l-4-4M19 14l4-4"/>
+    </svg>
+    Tap the dealer card and your two cards to get your move.
+  </div>
+  <div class="result-inner" id="result-inner">
+    <div class="result-bar" id="result-bar"></div>
+    <div class="result-body">
+      <div class="result-meta">
+        <span class="result-hand-badge" id="res-hand-type">HARD</span>
+        <span class="result-hand-val" id="res-hand-val"></span>
+      </div>
+      <div class="move-display">
+        <div class="move-badge" id="res-move-badge"></div>
+      </div>
+      <div class="move-sub" id="res-move-sub"></div>
+      <div class="move-btn-group" id="move-buttons"></div>
+      <div class="dealer-ace-note" id="dealer-ace-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Dealer has an Ace — do <strong>not</strong> take insurance.
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- Picker overlay -->
+<div class="picker-overlay" id="picker-overlay" onclick="closePicker()"></div>
+<div class="card-picker" id="card-picker">
+  <div class="picker-title" id="picker-title">Select card</div>
+  <div class="picker-grid" id="picker-list"></div>
+</div>
+
+<script>
+// playerCards/playerLabels always have exactly 2 slots for p1+p2 (null = empty), then extras from index 2
+var state={surrender:'no',soft17:'stands',hands:0,dealer:null,playerCards:[null,null],playerLabels:[null,null],doubled:false};
+var S=function(s,h){return{stands:s,hits:h};};
+var strategies={
+  4:[0,0,0,0,0,0,0,0,0,0],5:[0,0,0,0,0,0,0,0,0,0],6:[0,0,0,0,0,0,0,0,0,0],
+  7:[0,0,0,0,0,0,0,0,0,0],8:[0,0,0,0,0,0,0,0,0,0],
+  9:[0,3,3,3,3,0,0,0,0,0],
+  10:[3,3,3,3,3,3,3,3,0,0],
+  11:[3,3,3,3,3,3,3,3,3,S(0,3)],
+  12:[0,0,1,1,1,0,0,0,0,0],
+  '13hard':[1,1,1,1,1,0,0,0,0,0],'14hard':[1,1,1,1,1,0,0,0,0,0],
+  '15hard':[1,1,1,1,1,0,0,0,7,S(0,7)],'16hard':[1,1,1,1,1,0,0,7,7,7],
+  '17hard':[1,1,1,1,1,1,1,1,1,S(1,8)],'18hard':[1,1,1,1,1,1,1,1,1,1],
+  '19hard':[1,1,1,1,1,1,1,1,1,1],'20hard':[1,1,1,1,1,1,1,1,1,1],'21hard':[1,1,1,1,1,1,1,1,1,1],
+  '13soft':[0,0,0,3,3,0,0,0,0,0],'14soft':[0,0,0,3,3,0,0,0,0,0],
+  '15soft':[0,0,3,3,3,0,0,0,0,0],'16soft':[0,0,3,3,3,0,0,0,0,0],
+  '17soft':[0,3,3,3,3,0,0,0,0,0],
+  '18soft':[4,4,4,4,4,1,1,0,0,0],
+  '19soft':[1,1,1,1,S(1,4),1,1,1,1,1],
+  '20soft':[1,1,1,1,1,1,1,1,1,1],'21soft':[1,1,1,1,1,1,1,1,1,1],
+  '2splits':[5,5,2,2,2,2,0,0,0,0],'3splits':[5,5,2,2,2,2,0,0,0,0],
+  '4splits':[0,0,0,5,5,0,0,0,0,0],'6splits':[5,2,2,2,2,0,0,0,0,0],
+  '7splits':[2,2,2,2,2,2,0,0,0,0],'8splits':[2,2,2,2,2,2,2,2,2,S(2,5)],
+  '9splits':[2,2,2,2,2,1,2,2,1,1],'11splits':[2,2,2,2,2,2,2,2,2,2]
+};
+var dealerLookup={2:0,3:1,4:2,5:3,6:4,7:5,8:6,9:7,10:8,'J':8,'Q':8,'K':8,'A':9};
+var CARDS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+var RED_CARDS=['J','Q','K','A']; // face cards styled red in picker
+
+function setOption(key,val,btn){
+  state[key]=val;
+  btn.closest('.toggle-pair').querySelectorAll('button').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  calculate();
+}
+
+function openPicker(slot,e){
+  e.stopPropagation();
+  state.activePicker=slot;
+  var title=document.getElementById('picker-title');
+  title.textContent=slot==='dealer'?'Dealer card':'Your card';
+  var list=document.getElementById('picker-list');
+  list.innerHTML='';
+  CARDS.forEach(function(c){
+    var btn=document.createElement('button');
+    btn.textContent=c;
+    if(RED_CARDS.indexOf(c)!==-1) btn.classList.add('face-card');
+    btn.onclick=function(ev){ev.stopPropagation();selectCard(slot,c);closePicker();};
+    list.appendChild(btn);
+  });
+  var picker=document.getElementById('card-picker');
+  var rect=e.target.getBoundingClientRect();
+  var top=rect.bottom+8+window.scrollY;
+  var left=Math.max(8,Math.min(rect.left,window.innerWidth-240));
+  picker.style.top=top+'px';
+  picker.style.left=left+'px';
+  picker.classList.add('visible');
+  document.getElementById('picker-overlay').classList.add('visible');
+}
+function closePicker(){
+  document.getElementById('card-picker').classList.remove('visible');
+  document.getElementById('picker-overlay').classList.remove('visible');
+}
+
+function cardNumVal(v){return v==='A'?11:(v==='J'||v==='Q'||v==='K')?10:parseInt(v);}
+
+function renderCard(el, val, isDealer, slot){
+  var faceClass = (val==='J'||val==='Q'||val==='K') ? ' red-card' : '';
+  el.innerHTML='<span class="card-pip-tl">'+val+'</span>'+val+'<span class="card-pip-br">'+val+'</span>'
+    +'<button class="card-clear" onclick="clearCard(\''+slot+'\',event)" title="Clear">×</button>';
+  el.className='card selected '+(isDealer?'dealer-card':'player-card')+faceClass;
+}
+
+function selectCard(slot,val){
+  var nv=cardNumVal(val);
+  if(slot==='dealer'){
+    state.dealer=val;
+    renderCard(document.getElementById('card-dealer'),val,true,'dealer');
+  }else if(slot==='p1'){
+    state.playerCards[0]=nv;state.playerLabels[0]=val;
+    renderCard(document.getElementById('card-p1'),val,false,'p1');
+  }else if(slot==='p2'){
+    state.playerCards[1]=nv;state.playerLabels[1]=val;
+    renderCard(document.getElementById('card-p2'),val,false,'p2');
+  }else{
+    var idx=parseInt(slot.replace('extra',''));
+    if(idx>=state.playerCards.length){state.playerCards.push(nv);state.playerLabels.push(val);}
+    else{state.playerCards[idx]=nv;state.playerLabels[idx]=val;}
+    var el=document.getElementById('card-extra-'+idx);
+    if(el) renderCard(el,val,false,slot);
+  }
+  calculate();
+}
+
+function clearCard(slot, e){
+  e.stopPropagation();
+  if(slot==='dealer'){
+    state.dealer=null;
+    var el=document.getElementById('card-dealer');
+    el.innerHTML='+';el.className='card empty dealer-card';
+  }else if(slot==='p1'){
+    state.playerCards[0]=null;state.playerLabels[0]=null;
+    var el=document.getElementById('card-p1');
+    el.innerHTML='+';el.className='card empty player-card';
+  }else if(slot==='p2'){
+    state.playerCards[1]=null;state.playerLabels[1]=null;
+    state.playerCards.splice(2);state.playerLabels.splice(2);
+    var el=document.getElementById('card-p2');
+    el.innerHTML='+';el.className='card empty player-card';
+    document.getElementById('extra-cards').innerHTML='';
+  }else{
+    var idx=parseInt(slot.replace('extra',''));
+    state.playerCards.splice(idx,1);state.playerLabels.splice(idx,1);
+    // remove all extra DOM slots from idx onwards, then re-render any that remain
+    var container=document.getElementById('extra-cards');
+    container.querySelectorAll('[id^="card-extra-"]').forEach(function(cardEl){
+      if(parseInt(cardEl.id.replace('card-extra-',''))>=idx) cardEl.parentNode.remove();
+    });
+    for(var i=idx;i<state.playerCards.length;i++){
+      addExtraCardSlot(i);
+      renderCard(document.getElementById('card-extra-'+i),state.playerLabels[i],false,'extra'+i);
+    }
+  }
+  calculate();
+}
+
+function addExtraCardSlot(idx){
+  var container=document.getElementById('extra-cards');
+  var slotDiv=document.createElement('div');
+  slotDiv.className='card-slot';
+  var card=document.createElement('div');
+  card.className='card empty player-card';
+  card.id='card-extra-'+idx;
+  card.textContent='+';
+  card.onclick=function(e){openPicker('extra'+idx,e);};
+  slotDiv.appendChild(card);
+  container.appendChild(slotDiv);
+}
+
+function setResultBar(cls){
+  var bar=document.getElementById('result-bar');
+  bar.className='result-bar '+cls;
+}
+
+function calculate(){
+  var hint=document.getElementById('result-hint');
+  var inner=document.getElementById('result-inner');
+  var panel=document.getElementById('result-panel');
+  if(!state.dealer||state.playerCards[0]===null||state.playerCards[1]===null){
+    hint.style.display='';inner.classList.remove('visible');panel.classList.remove('bust');return;
+  }
+  hint.style.display='none';inner.classList.add('visible');panel.classList.remove('bust');
+
+  var cards=state.playerCards.filter(function(v){return v!==null;});
+  var hand=cards.reduce(function(a,b){return a+b;},0);
+  var aces=cards.filter(function(c){return c===11;}).length;
+  var acesHigh=aces;
+  if(hand>21&&aces>0){
+    for(var i=0;i<aces;i++){hand-=10;acesHigh--;if(hand<=21)break;}
+  }
+
+  if(hand>21){
+    panel.classList.add('bust');
+    setResultBar('bust');
+    document.getElementById('res-hand-type').textContent='BUST';
+    document.getElementById('res-hand-val').textContent=hand;
+    var mb=document.getElementById('res-move-badge');
+    mb.className='move-badge bust';mb.textContent='Bust';
+    document.getElementById('res-move-sub').textContent='Over 21 — this hand is over.';
+    document.getElementById('move-buttons').innerHTML='';
+    document.getElementById('dealer-ace-note').style.display='none';
+    return;
+  }
+
+  var hasAce=aces>0;
+  var hardSoft=(hasAce&&(hand-10*acesHigh)<12)?'soft':'hard';
+  var dealerIdx=dealerLookup[state.dealer];
+  var dealerAce=(dealerIdx===9);
+  var canDouble=(cards.length===2);
+  var canSplit=canDouble&&cards[0]===cards[1];
+  var lookup;
+  if(canSplit&&hand!==10&&hand!==20){
+    var sv=cards[0]===11?11:cards[0];
+    lookup=sv+'splits';
+  }else if(hand>12){
+    lookup=hand+hardSoft;
+  }else{
+    lookup=hand;
+  }
+
+  document.getElementById('res-hand-type').textContent=hardSoft.toUpperCase();
+  document.getElementById('res-hand-val').textContent=hand;
+  document.getElementById('dealer-ace-note').style.display=dealerAce?'flex':'none';
+
+  var stratRow=strategies[lookup];
+  if(!stratRow){
+    setResultBar('hit');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge hit';mb.textContent='HIT';
+    document.getElementById('res-move-sub').textContent='';
+    document.getElementById('move-buttons').innerHTML='';
+    return;
+  }
+
+  var cell=stratRow[dealerIdx];
+  if(cell!==null&&typeof cell==='object'&&!Array.isArray(cell)){cell=cell[state.soft17];}
+
+  var r=decode(cell,canDouble,state.surrender==='yes',state.doubled);
+  setResultBar(r.barClass||'hit');
+  var mb=document.getElementById('res-move-badge');
+  mb.className='move-badge '+(r.badgeClass||'hit');
+  mb.textContent=r.badgeText||'HIT';
+  document.getElementById('res-move-sub').textContent=r.sub||'';
+
+  var bg=document.getElementById('move-buttons');
+  bg.innerHTML='';
+  if(r.buttons){
+    r.buttons.forEach(function(b){
+      var btn=document.createElement('button');
+      btn.className='move-btn '+b.cls;btn.textContent=b.label;
+      btn.onclick=function(){handleChoice(b.action);};
+      bg.appendChild(btn);
+    });
+  }
+  if(r.primaryAction==='HIT'&&!state.doubled){
+    var nextIdx=state.playerCards.length;
+    if(!document.getElementById('card-extra-'+nextIdx))addExtraCardSlot(nextIdx);
+  }
+}
+
+function decode(code,canDouble,surr,doubled){
+  if(doubled)return{badgeText:'End of Hand',badgeClass:'end',barClass:'stand',sub:'You doubled — one more card only.',primaryAction:'END'};
+  if(code===0)return{badgeText:'HIT',badgeClass:'hit',barClass:'hit',sub:'Take another card.',primaryAction:'HIT'};
+  if(code===1)return{badgeText:'STAND',badgeClass:'stand',barClass:'stand',sub:'Hold your hand.',primaryAction:'STAND'};
+  if(code===2)return{badgeText:'SPLIT',badgeClass:'split',barClass:'split',sub:'Play each card as a separate hand.',primaryAction:'SPLIT'};
+  if(code===3){
+    if(canDouble)return{badgeText:'DOUBLE',badgeClass:'double',barClass:'double',sub:'Double if allowed, otherwise hit.',primaryAction:'DOUBLE',buttons:[{label:'DOUBLE',cls:'double',action:'DOUBLE'},{label:'HIT',cls:'hit',action:'HIT'}]};
+    return{badgeText:'HIT',badgeClass:'hit',barClass:'hit',sub:'Take another card.',primaryAction:'HIT'};
+  }
+  if(code===4){
+    if(canDouble)return{badgeText:'DOUBLE',badgeClass:'double',barClass:'double',sub:'Double if allowed, otherwise stand.',primaryAction:'DOUBLE',buttons:[{label:'DOUBLE',cls:'double',action:'DOUBLE'},{label:'STAND',cls:'stand',action:'STAND'}]};
+    return{badgeText:'STAND',badgeClass:'stand',barClass:'stand',sub:'Hold your hand.',primaryAction:'STAND'};
+  }
+  if(code===5){
+    return{badgeText:'SPLIT',badgeClass:'split',barClass:'split',sub:'Split if Double After Split is allowed, otherwise hit.',primaryAction:'SPLIT',buttons:[{label:'SPLIT',cls:'split',action:'SPLIT'},{label:'HIT',cls:'hit',action:'HIT'}]};
+  }
+  if(code===6||code===7||code===8){
+    if(surr)return{badgeText:'SURRENDER',badgeClass:'surr',barClass:'surr',sub:'Surrender if allowed, otherwise hit.',primaryAction:'SURRENDER',buttons:[{label:'SURRENDER',cls:'surr',action:'SURRENDER'},{label:'HIT',cls:'hit',action:'HIT'}]};
+    return{badgeText:'HIT',badgeClass:'hit',barClass:'hit',sub:'Take another card.',primaryAction:'HIT'};
+  }
+  return{badgeText:'HIT',badgeClass:'hit',barClass:'hit',sub:'Take another card.',primaryAction:'HIT'};
+}
+
+function handleChoice(action){
+  document.getElementById('move-buttons').innerHTML='';
+  if(action==='DOUBLE'){
+    state.doubled=true;
+    setResultBar('stand');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge end';mb.textContent='End of Hand';
+    document.getElementById('res-move-sub').textContent='You doubled — one more card only.';
+    var nextIdx=state.playerCards.length;
+    if(!document.getElementById('card-extra-'+nextIdx))addExtraCardSlot(nextIdx);
+  }else if(action==='STAND'){
+    setResultBar('stand');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge end';mb.textContent='Standing';
+    document.getElementById('res-move-sub').textContent='Hold your hand.';
+  }else if(action==='SPLIT'){
+    setResultBar('split');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge end';mb.textContent='Split';
+    document.getElementById('res-move-sub').textContent='Reset and play each new hand separately.';
+  }else if(action==='SURRENDER'){
+    setResultBar('surr');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge end';mb.textContent='Surrendered';
+    document.getElementById('res-move-sub').textContent='End of hand.';
+  }else if(action==='HIT'){
+    var nextIdx=state.playerCards.length;
+    if(!document.getElementById('card-extra-'+nextIdx))addExtraCardSlot(nextIdx);
+    setResultBar('hit');
+    var mb=document.getElementById('res-move-badge');mb.className='move-badge hit';mb.textContent='HIT';
+    document.getElementById('res-move-sub').textContent='Select your next card above.';
+  }
+}
+
+function resetHand(){
+  state.hands++;state.dealer=null;state.playerCards=[null,null];state.playerLabels=[null,null];state.doubled=false;
+  var c=state.hands;
+  document.getElementById('hand-count').textContent=c+(c===1?' hand':' hands')+' played';
+  var d=document.getElementById('card-dealer');
+  d.innerHTML='+';d.className='card empty dealer-card';
+  ['card-p1','card-p2'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.innerHTML='+';el.className='card empty player-card';
+  });
+  document.getElementById('extra-cards').innerHTML='';
+  document.getElementById('result-hint').style.display='';
+  document.getElementById('result-inner').classList.remove('visible');
+  document.getElementById('result-panel').classList.remove('bust');
+  document.getElementById('dealer-ace-note').style.display='none';
+}
+</script>
+</body>
+</html>
