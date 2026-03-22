@@ -490,7 +490,7 @@
 <!-- Controls -->
 <div class="controls">
   <div class="controls-left">
-    <div class="control-group">
+    <div class="control-group" id="surrender-group" style="display:none">
       <span class="control-label">Surrender</span>
       <div class="toggle-pair" id="surrender-toggle">
         <button class="active" onclick="setOption('surrender','no',this)">No</button>
@@ -597,7 +597,7 @@ var strategies={
   '13soft':[0,0,0,3,3,0,0,0,0,0],'14soft':[0,0,0,3,3,0,0,0,0,0],
   '15soft':[0,0,3,3,3,0,0,0,0,0],'16soft':[0,0,3,3,3,0,0,0,0,0],
   '17soft':[0,3,3,3,3,0,0,0,0,0],
-  '18soft':[4,4,4,4,4,1,1,0,0,0],
+  '18soft':[S(1,4),4,4,4,4,1,1,0,0,0],
   '19soft':[1,1,1,1,S(1,4),1,1,1,1,1],
   '20soft':[1,1,1,1,1,1,1,1,1,1],'21soft':[1,1,1,1,1,1,1,1,1,1],
   '2splits':[5,5,2,2,2,2,0,0,0,0],'3splits':[5,5,2,2,2,2,0,0,0,0],
@@ -784,6 +784,11 @@ function calculate(){
   }
 
   var cell=stratRow[dealerIdx];
+
+  // Composition-dependent: multi-card hard 16 vs 9/10/A — STAND with 3+ cards
+  // With 3+ cards making 16, the small cards are already out, so busting is more likely
+  var compositionOverride=false;
+  if(lookup==='16hard'&&cards.length>=3&&dealerIdx>=7){cell=1;compositionOverride=true;}
   if(cell!==null&&typeof cell==='object'&&!Array.isArray(cell)){cell=cell[state.soft17];}
 
   var r=decode(cell,canDouble,state.surrender==='yes',state.doubled);
@@ -802,6 +807,9 @@ function calculate(){
       btn.onclick=function(){handleChoice(b.action);};
       bg.appendChild(btn);
     });
+  }
+  if(compositionOverride){
+    document.getElementById('res-move-sub').textContent='Stand — with 3+ cards making 16, small cards are gone so busting is more likely.';
   }
   if(r.primaryAction==='HIT'&&!state.doubled){
     var nextIdx=state.playerCards.length;
